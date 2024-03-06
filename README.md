@@ -37,14 +37,13 @@ deactivate
 
 ## Usage
 
-[Provide instructions on how to use your project here]
+Test blockchain technology and learn the basics of how the system works.
 
 ## Contributing
 
-[Provide guidelines for contributing to your project here]
+This project serves as an illustrative example of blockchain technology. Contributions are welcome to enhance understanding and foster collaborative learning.
 
 ## License
 
-[Include information about the license of your project]
-
+This project is open-source and freely available for anyone to use and modify without any restrictions. However, please note that without a specified license, others may not know the extent to which they can use, modify, or distribute your project. If you're interested in providing more clarity on the usage terms, consider choosing a license and adding it to your project in the future.
 
