@@ -8,14 +8,17 @@ class Blockchain:
         self.block = [] #list of block
         self.create_block(nonce=1,previous_hash="0")
      
-    def create_block(self,nonce,previous_hash,):
+    def create_block(self,nonce,previous_hash,transactions=None):
         block={
             "id":len(self.block)+1,
             "timestamp":str(datetime.datetime.now()),
             "nonce":nonce,
             "previous_hash":previous_hash,
+            "transactions": transactions or []
         }
         self.block.append(block)
+        block_hash = self.calculate_hash(block)
+        print(f"Hash of block {block['id']}: {block_hash}")
         return block
     
     def get_previous_block(self):
@@ -36,14 +39,13 @@ class Blockchain:
         #mathematics algorithym
         while check_nonce is False:
             hash_operation = hashlib.sha256(str(new_nonce**2 - previous_nonce**2).encode()).hexdigest()    
-            # print ("Previous nonce=",previous_nonce)
             if hash_operation[:4] == "0000":
                 check_nonce = True
             else:
                 new_nonce += 1 
         return new_nonce
 
-    def is_chain_valid(self,block):
+    def is_valid_chain(self,block):
         previous_block = block[0]
         block_index = 1
         while block_index < len(block):
@@ -59,6 +61,22 @@ class Blockchain:
             block_index += 1
         return True
 
+class Transaction:
+    def __init__(self, sender, recipient, amount, timestamp):
+        self.sender = sender
+        self.recipient = recipient
+        self.amount = amount
+        self.timestamp = timestamp
+
+    def to_dict(self):
+        return {
+            "sender": self.sender,
+            "recipient": self.recipient,
+            "amount": self.amount,
+            "timestamp": str(self.timestamp)
+        }
+
+
 blockchain = Blockchain()
 
 #Create Flask app web server
@@ -69,14 +87,27 @@ app = Flask(__name__)
 def hello():
     return "<p>Hello Blockchain</p>"
 
+# @app.route('/chain', methods=['GET'])
+# def get_chain():
+#     chain = blockchain.block
+#     response = {
+#         'chain': chain,
+#         'length': len(chain)
+#     }
+#     return jsonify(response),200
 @app.route('/chain', methods=['GET'])
 def get_chain():
-    chain = blockchain.block
+    chain_with_hashes = []
+    for block in blockchain.block:
+        block_with_hash = block.copy()
+        block_with_hash["hash"] = blockchain.calculate_hash(block)
+        chain_with_hashes.append(block_with_hash)
+
     response = {
-        'chain': chain,
-        'length': len(chain)
+        'chain': chain_with_hashes,
+        'length': len(chain_with_hashes)
     }
-    return jsonify(response),200
+    return jsonify(response), 200
 
 @app.route('/mine',methods=['GET'])
 def mine_block():
@@ -84,41 +115,53 @@ def mine_block():
     previous_nonce = previous_block['nonce']
     new_nonce = blockchain.proof_of_work(previous_nonce)
     previous_hash = blockchain.calculate_hash(previous_block)
-    block = blockchain.create_block(new_nonce, previous_hash)
+    
+    transaction = {
+        'sender': "sender_address",
+        'recipient': "recipient_address",
+        'amount': 10.0,
+        'timestamp': str(datetime.datetime.now())
+    }
+
+    block = blockchain.create_block(new_nonce, previous_hash, transactions=[transaction])
+    block_hash = blockchain.calculate_hash(block)  # Calculate hash of the mined block
+
     response = {
         'message':"Successfully mining block",
         'id':block["id"],
         'timestamp':block["timestamp"],
         'nonce':block["nonce"],
-        'previous_hash':block["previous_hash"]
+        'previous_hash':block["previous_hash"],
+        'block_hash': block_hash  
     }
     return jsonify(response),200
 
 @app.route('/chain/validity', methods=['GET'])
 def check_chain_validity():
-    # try:
-    #     is_valid = blockchain.is_valid_chain()
-    #     response = {'is_valid':is_valid}
-    #     return jsonify(response),200
-    # except Exception as e:
-    #     return jsonify({'error':str(e)}),500
+    try:
+        is_valid = blockchain.is_valid_chain(blockchain.block)
+        response = {'is_valid':is_valid}
+        return jsonify(response),200
+    except Exception as e:
+        return jsonify({'error':str(e)}),500
     
-    is_valid = blockchain.is_chain_valid(blockchain.block)
-    if is_valid:
-        response = {"message":"Blockchain valid"}
-    else:
-        response = {"message":"Blockchain invalid"}
-    return jsonify(response), 200
+    # is_valid = blockchain.is_chain_valid(blockchain.block)
+    # if is_valid:
+    #     response = {"message":"Blockchain valid"}
+    # else:
+    #     response = {"message":"Blockchain invalid"}
+    # return jsonify(response), 200
     
 
-# first_block = blockchain.block
-# print("First block =",first_block)
+first_block = blockchain.block
+print(f"First block =",first_block)
 
-# previous_block = blockchain.get_previous_block()
-# print("Previous block =",previous_block)
+previous_block = blockchain.get_previous_block()
+print(f"Previous block =",previous_block)
 
 # print("Encode block to JSON =",blockchain.encode_block_to_json(first_block))
-# print("Hash sha256 =",blockchain.calculate_hash(blockchain.block[0]))
+
+print(f"Hash block 1 =",blockchain.calculate_hash(blockchain.block[0]))
 # print("POW =",blockchain.proof_of_work)
 
 #run server
